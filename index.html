@@ -188,11 +188,11 @@ function calculateUSCS() {
 
     let uscsName;
 
-    // All Below 40% Case: Defaults to well-graded soil
-    if (gravel < 40 && sand < 40 && fines < 40) {
-        if (grading === 'GW') uscsName = 'GW (Well-graded soil)';
-        else if (grading === 'GP') uscsName = 'GP (Poorly-graded soil)';
-        else if (grading === '') uscsName = 'GW (Well-graded soil) or GP (Poorly-graded soil)';
+    // All between 10 and less than 50% Case: Defaults to well-graded soil
+    if (gravel >= 2 && gravel < 50 && sand >= 2 && sand < 50 && fines >= 2 && fines < 50) {
+        if (grading === 'GW') uscsName = '(Well-graded soil)';
+        else if (grading === 'GP') uscsName = '(Poorly-graded soil)';
+        else if (grading === '') uscsName = '(Well-graded soil) or (Poorly-graded soil)';
     }
 // Gravelly Soils: gravel >= 50%
 else if (gravel >= 50) {
