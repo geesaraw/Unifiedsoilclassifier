@@ -10,11 +10,11 @@
 ## Getting Started
 To use the Unified Soil Classifier:
 1. Clone the repository or download the HTML file.
-2. Open `index.html` in your preferred web browser.
+2. Open `Unifiedsoilclassifier.html` in your preferred web browser.
 3. Adjust the sliders and dropdowns to input soil properties, and the USCS classification will appear automatically.
 
 ## File Structure
 
 ```plaintext
 .
-├── index.html    # Main HTML file with inline CSS and JavaScript for soil classification
+├── Unifiedsoilclassifier.html    # Main HTML file with inline CSS and JavaScript for soil classification
