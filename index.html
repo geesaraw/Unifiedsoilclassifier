@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Soil Classifier</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            max-width: 600px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input[type="range"],
+        select {
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #007bff;
+            transition: border-color 0.3s;
+        }
+
+        input[type="range"]:focus,
+        select:focus {
+            border-color: #0056b3;
+            outline: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            background-color: #e9f7fd;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Unified Soil Classifier</h2>
+<p>Simplified Soil Classification Tool utilizing the Unified Soil Classification System (USCS)</p>
+
+<label for="gravel">Gravel %: <span id="gravelValue">0</span>%</label>
+<input type="range" id="gravel" min="0" max="100" step="1" value="0" oninput="updateSandAndFines()">
+
+<label for="sand">Sand %: <span id="sandValue">0</span>%</label>
+<input type="range" id="sand" min="0" max="100" step="1" value="0" oninput="updateFines(); limitSandSlider()">
+
+<label for="fines">Fines %: <span id="finesValue">0</span>%</label>
+<input type="range" id="fines" min="0" max="100" step="1" value="0" disabled>
+
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+    <div style="flex: 1; margin-right: 10px;">
+        <label for="grading">Grading:</label>
+        <select id="grading" onchange="calculateUSCS()">
+            <option value="">Select</option>
+            <option value="GW">Well Graded (GW)</option>
+            <option value="GP">Poorly Graded (GP)</option>
+        </select>
+    </div>
+
+    <div style="flex: 1; margin-right: 10px;">
+        <label for="fineclasif">Dominant Fines:</label>
+        <select id="fineclasif" onchange="calculateUSCS()">
+            <option value="">Select</option>
+            <option value="silt">Silt</option>
+            <option value="clay">Clay</option>
+        </select>
+    </div>
+
+    <div style="flex: 1; margin-right: 10px;">
+        <label for="plasticity">Plasticity:</label>
+        <select id="plasticity" onchange="calculateUSCS()">
+            <option value="">Select</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+        </select>
+    </div>
+
+    <div style="flex: 1; margin-right: 10px;">
+        <label for="organic">Organic:</label>
+        <select id="organic" onchange="calculateUSCS()">
+            <option value="not identified">Not Identified</option>
+            <option value="present">Present (OL/OH)</option>
+            <option value="highpeat">High Peat (PT)</option>
+        </select>
+    </div>
+</div>
+
+<h3>USCS Terminology: </h3>
+<div class="result" id="result"><span id="uscsName">Unknown</span></div>
+
+<script>
+// Function to initialize values on page load
+function initializeValues() {
+    const sandSlider = document.getElementById('sand');
+    sandSlider.value = 0; // Set initial value to 0
+    document.getElementById('sandValue').textContent = sandSlider.value; // Update displayed value
+}
+
+// Function to update sand and fines values when gravel slider is adjusted
+function updateSandAndFines() {
+    const gravel = parseInt(document.getElementById('gravel').value);
+    const sandSlider = document.getElementById('sand');
+    const finesSlider = document.getElementById('fines');
+
+    // Set sand slider value within limit based on gravel adjustment
+    if (parseInt(sandSlider.value) > 100 - gravel) {
+        sandSlider.value = 100 - gravel;
+    }
+
+    const sand = parseInt(sandSlider.value);
+    const fines = 100 - gravel - sand;
+
+    finesSlider.value = fines;
+    document.getElementById('gravelValue').textContent = gravel;
+    document.getElementById('sandValue').textContent = sand;
+    document.getElementById('finesValue').textContent = fines;
+
+    calculateUSCS();
+}
+
+// Call initializeValues when the page loads
+window.onload = initializeValues;
+
+
+// Function to update fines value when sand slider is adjusted
+function updateFines() {
+    const gravel = parseInt(document.getElementById('gravel').value);
+    const sand = parseInt(document.getElementById('sand').value);
+    const finesSlider = document.getElementById('fines');
+    const fines = 100 - gravel - sand;
+
+    finesSlider.value = fines;
+
+    document.getElementById('sandValue').textContent = sand;
+    document.getElementById('finesValue').textContent = fines;
+
+    calculateUSCS();
+}
+
+// Function to limit the sand slider within the allowed range
+function limitSandSlider() {
+    const gravel = parseInt(document.getElementById('gravel').value);
+    const sandSlider = document.getElementById('sand');
+    const maxSand = 100 - gravel;
+
+    if (parseInt(sandSlider.value) > maxSand) {
+        sandSlider.value = maxSand;
+    }
+    
+    // Update the displayed sand value
+    document.getElementById('sandValue').textContent = sandSlider.value;
+
+    // Update fines based on the new sand value
+    updateFines();
+}
+
+</script>
+<script>
+function calculateUSCS() {
+    const gravel = parseFloat(document.getElementById('gravel').value);
+    const sand = parseFloat(document.getElementById('sand').value);
+    const fines = parseFloat(document.getElementById('fines').value);
+    const grading = document.getElementById('grading').value;
+    const fineclasif = document.getElementById('fineclasif').value;
+    const plasticity = document.getElementById('plasticity').value;
+    const organic = document.getElementById('organic').value;
+
+    let uscsName;
+
+    // All Below 40% Case: Defaults to well-graded soil
+    if (gravel < 40 && sand < 40 && fines < 40) {
+        if (grading === 'GW') uscsName = 'GW (Well-graded soil)';
+        else if (grading === 'GP') uscsName = 'GP (Poorly-graded soil)';
+        else if (grading === '') uscsName = 'GW (Well-graded soil) or GP (Poorly-graded soil)';
+    }
+// Gravelly Soils: gravel >= 50%
+else if (gravel >= 50) {
+    if (fines < 5) {
+        if (grading === 'GW') {
+            uscsName = 'GW (Well-graded gravel)';
+        } else if (grading === 'GP') {
+            uscsName = 'GP (Poorly-graded gravel)';
+        } else if (grading === '') {
+            uscsName = 'GW (Well-graded gravel) or GP (Poorly-graded gravel)';
+        }
+    } else if (fines >= 5 && fines <= 12) {
+        if (grading === 'GW') {
+            uscsName = 'GW-GM (Well-graded gravel with silt)';
+        } else if (grading === 'GP') {
+            uscsName = 'GP-GM (Poorly-graded gravel with silt)';
+        } else if (grading === '') {
+            uscsName = 'GW-GM (Well-graded gravel with silt) or GP-GM (Poorly-graded gravel with silt)';
+        }
+    } else {
+        // New condition based on sand percentage
+        if (fineclasif === 'silt') {
+            if (sand > 0) {
+                uscsName = 'GM (Silty gravel with sand)';
+            } else {
+                uscsName = 'GM (Silty gravel)';
+            }
+        } else if (fineclasif === 'clay') {
+            if (sand > 0) {
+                uscsName = 'GC (Clayey gravel with sand)';
+            } else {
+                uscsName = 'GC (Clayey gravel)';
+            }
+        } else if (fineclasif === '') {
+            if (sand > 0) {
+                uscsName = 'GM (Silty gravel with sand) or GC (Clayey gravel with sand)';
+            } else {
+                uscsName = 'GM (Silty gravel) or GC (Clayey gravel)';
+            }
+        }
+    }
+}
+
+// Sandy Soils: sand >= 50%, gravel < 50%
+else if (sand >= 50 && gravel < 50) {
+    if (fines < 50) {
+        if (fines < 5) {
+            if (grading === 'GW') {
+                uscsName = 'SW (Well-graded sand)';
+            } else if (grading === 'GP') {
+                uscsName = 'SP (Poorly-graded sand)';
+            } else if (grading === '') {
+                uscsName = 'SW (Well-graded sand) or SP (Poorly-graded sand)';
+            }
+        } else if (fines >= 5 && fines <= 12) {
+            // New conditions based on fine classification
+            if (fineclasif === 'silt') {
+                if (grading === 'GW') {
+                    uscsName = 'SW-SM (Well-graded sand with silt)';
+                } else if (grading === 'GP') {
+                    uscsName = 'SP-SM (Poorly-graded sand with silt)';
+                } else if (grading === '') {
+                    uscsName = 'SW-SM (Well-graded sand with silt) or SP-SM (Poorly-graded sand with silt)';
+                }
+            } else if (fineclasif === 'clay') {
+                if (grading === 'GW') {
+                    uscsName = 'SW-SC (Well-graded sand with clay)';
+                } else if (grading === 'GP') {
+                    uscsName = 'SP-SC (Poorly-graded sand with clay)';
+                } else if (grading === '') {
+                    uscsName = 'SW-SC (Well-graded sand with clay) or SP-SC (Poorly-graded sand with clay)';
+                }
+            } else if (fineclasif === '') {
+                if (grading === 'GW') {
+                    uscsName = 'SW-SM (Well-graded sand with silt) or SW-SC (Well-graded sand with clay)';
+                } else if (grading === 'GP') {
+                    uscsName = 'SP-SM (Poorly-graded sand with silt) or SP-SC (Poorly-graded sand with clay)';
+                } else if (grading === '') {
+                    uscsName = 'SW-SM (Well-graded sand with silt) or SP-SM (Poorly-graded sand with silt) or SW-SC (Well-graded sand with clay) or SP-SC (Poorly-graded sand with clay)';
+                }
+            }
+        } else {
+            // Existing logic for fines > 12%
+            if (fineclasif === 'silt') {
+                if (gravel > 0) {
+                    uscsName = 'SM (Silty sand) with gravel';
+                } else {
+                    uscsName = 'SM (Silty sand)';
+                }
+            } else if (fineclasif === 'clay') {
+                if (gravel > 0) {
+                    uscsName = 'SC (Clayey sand) with gravel';
+                } else {
+                    uscsName = 'SC (Clayey sand)';
+                }
+            } else if (fineclasif === '') {
+                if (gravel > 0) {
+                    uscsName = 'SM (Silty sand) with gravel or SC (Clayey sand) with gravel';
+                } else {
+                    uscsName = 'SM (Silty sand) or SC (Clayey sand)';
+                }
+            }
+        }
+    } else {
+        if (fineclasif === 'silt') {
+            uscsName = 'SM (Silty sand)';
+        } else if (fineclasif === 'clay') {
+            uscsName = 'SC (Clayey sand)';
+        } else if (fineclasif === '') {
+            uscsName = 'SM (Silty sand) or SC (Clayey sand)';
+        }
+    }
+}
+// Fine Soils: fines >= 50%
+else if (fines >= 50) {
+    if (organic === 'highpeat') {
+        uscsName = 'PT (Peat)';
+    } else if (organic === 'present') {
+        if (fineclasif === 'silt') {
+            // Only silt classifications
+            if (plasticity === 'low') {
+                uscsName = 'OL (Organic silt/clay, low plasticity)';
+            } else if (plasticity === 'high') {
+                uscsName = 'OH (Organic silt/clay, high plasticity)';
+            } else {
+                uscsName = 'OL (Organic silt/clay, low plasticity) or OH (Organic silt/clay, high plasticity)';
+            }
+        } else if (fineclasif === 'clay') {
+            // Only clay classifications
+            if (plasticity === 'low') {
+                uscsName = 'OL (Organic silt/clay, low plasticity)';
+            } else if (plasticity === 'high') {
+                uscsName = 'OH (Organic silt/clay, high plasticity)';
+            } else {
+                uscsName = 'OL (Organic silt/clay, low plasticity) or OH (Organic silt/clay, high plasticity)';
+            }
+        } else if (fineclasif === '') {
+            // Only clay classifications
+            if (plasticity === 'low') {
+                uscsName = 'OL (Organic silt/clay, low plasticity)';
+            } else if (plasticity === 'high') {
+                uscsName = 'OH (Organic silt/clay, high plasticity)';
+            } else {
+                uscsName = 'OL (Organic silt/clay, low plasticity) or OH (Organic silt/clay, high plasticity)';
+            } 
+        }
+    } else {
+        if (fineclasif === 'silt') {
+            // Only silt classifications
+            if (plasticity === 'low') {
+                uscsName = 'ML (Low plasticity silt)';
+            } else if (plasticity === 'high') {
+                uscsName = 'MH (High plasticity silt)';
+            } else {
+                uscsName = 'ML (Low plasticity silt) or MH (High plasticity silt)';
+            }
+        } else if (fineclasif === 'clay') {
+            // Only clay classifications
+            if (plasticity === 'low') {
+                uscsName = 'CL (Low plasticity clay)';
+            } else if (plasticity === 'high') {
+                uscsName = 'CH (High plasticity clay)';
+            } else {
+                uscsName = 'CL (Low plasticity clay) or CH (High plasticity clay)';
+            }
+        } else if (fineclasif === '') {
+            // Only clay classifications
+            if (plasticity === 'low') {
+                uscsName = 'ML (Low plasticity silt) or CL (Low plasticity clay)';
+            } else if (plasticity === 'high') {
+                uscsName = 'MH (High plasticity silt) or CH (High plasticity clay)';
+            } else {
+                uscsName = 'ML (Low plasticity silt) or MH (High plasticity silt) or CL (Low plasticity clay) or CH (High plasticity clay)';
+            }
+
+        }
+    }
+} else {
+    uscsName = 'Unknown';
+}
+
+
+    document.getElementById('uscsName').textContent = uscsName;
+}
+</script>
+
+</body>
+</html>
